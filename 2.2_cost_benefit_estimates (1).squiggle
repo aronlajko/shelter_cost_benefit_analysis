@@ -1,0 +1,200 @@
+//-----------------------------------------------------------------//
+//Purpose: Cost-benefit estimate for Shelters
+//Author: Joel Becker, Aron Lajko
+//Date: 01/02/2023
+
+//Structure of the document:
+///////////////////////////////BENEFIT///////////////////////////////
+//The benefit is broken down, into a series of separately-estimated pieces. Shelters (automaton that Ajay describes - that is resistant to everything and has complete control of the inside inhabitants for let's say 10 years)
+//(1) The probability that the intervention is scaled given that a trial takes place.
+//(2) Conditional on (1), the annual probability that humanity will face a threat where this intervention would plausibly be valuable.
+//(3) Conditional on (1)-(2), the probability of extinction absent the intervention.
+//(4) Conditional on (1)-(3), the probability that extinction is counterfactually avoided due to the intervention.
+//(5) The annual probability that the scaled intervention persists.
+
+////////////////////////////////COST////////////////////////////////
+//Estimated costs are calculated in 2022 USD. They are broken down, into a series of separately-estimated pieces.
+//(1) The probability that the intervention is scaled given that the trial takes place.
+    //Identical to benefit component 1.
+//(2) The cost of a discrete trial/scaling process/etc. for the intervention.
+//(3) Costs occuring before first year of intervention (construction, planning)
+//(4) The annual cost of maintaining the scaled intervention.
+//(5) The annual probability that the scaled intervention persists.
+    //Identical to benefit component 5.
+
+/////////////////////////VALUE CALCULTAIONS/////////////////////////
+
+//-----------------------------------------------------------------//
+
+
+
+/////////////////////////////////////////////////////////////////////
+///////////////////////////////BENEFIT///////////////////////////////
+/////////////////////////////////////////////////////////////////////
+
+
+// (1) The probability that the intervention is scaled given that a trial takes place.
+trial_learning_benefits = 0
+trial_direct_benefits = 0
+trial_other_benefits = trial_learning_benefits + trial_direct_benefits
+// I think theres is a probability that even if the idea is good the trial is not successful due to team
+p_trial_successful = truncate(normal(0.75, 0.1), 0, 1)
+// probability that intervention scaled given successful will be recalculated later 
+
+// (2) Conditional on (1), the annual probability that humanity will face a threat where this intervention would plausibly be valuable.
+bio_threat_1_per_century = truncate((10^-3 to 10^-1) * 10, 0, 1)
+bio_threat_2_per_century = truncate((10^-4 to 10^-2) * 10, 0, 1)
+bio_threat_1 = 1 - (1 - bio_threat_1_per_century)^(1/100)
+bio_threat_2 = 1 - (1 - bio_threat_2_per_century)^(1/100)
+
+//(3) Conditional on (1)-(2), the probability of extinction absent the intervention.
+//probability of extinction absent the intervention
+p_bio_1_xrisk_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
+p_bio_2_xrisk_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
+    
+//(4) Conditional on (1)-(3), the probability that extinction is counterfactually avoided due to the intervention.
+p_bio_1_xrisk_with_shelter = truncate(normal(0.01, 0.01), 0, 1)
+p_bio_2_xrisk_with_shelter = truncate(normal(0.01, 0.01), 0, 1)
+//p_bio_3_xrisk_with_shelter = truncate(normal(0.3, 0.1), 0, 1)
+
+//(5) The annual probability that the scaled intervention persists.
+//I imagine this similar to Mars project that there is a failure rate througout time
+p_shelter_exists_after_10_year = truncate(normal(0.8, 0.1), 0, 1)
+annual_p_scaled_shelter = (p_shelter_exists_after_10_year)^(1/10)
+expected_years_shelter = (1 / (1 - annual_p_scaled_shelter))
+
+// conversion to basis points of existential risk reduced
+//// as discussed here, this SHOULD NOT be relied upon
+//// https://forum.effectivealtruism.org/posts/3tR7gpqYWzByPDwqL/quantifying-the-impact-of-grantmaking-career-paths?commentId=jDXagscPj9qAJgvmh
+usd_per_basis_point_xrisk = truncate(mx(normal(300M, 300M), 30M to 1B), 30M, 3B)
+
+
+///////////////////////////////////////////////////////////////////////
+/////////////////////////////////COSTS/////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+//(1) The probability that the intervention is scaled given that the trial takes place.
+// already defined as probability_that_1_scaled
+
+//(2) The cost of a discrete trial/scaling process/etc. for the intervention.
+cost_trial_shelter = truncate(300k  to 10M, 100k, 30M)
+
+//(3) Costs occuring before first year of intervention (construction, planning)
+cost_build_shelter = truncate(100M  to 300M, 50M, 600M)
+
+//(4) The annual cost of maintaining the scaled intervention (costs that occur after year 0. staff, keepinng people inside)
+    
+number_people_inside_shelter = truncate(100 to 300, 30, 3000)
+number_people_outside_shelter = truncateLeft(log(number_people_inside_shelter, 2), 2)
+number_people_per_shelter = number_people_inside_shelter + number_people_outside_shelter
+
+annual_salary_cost = 80000 * number_people_per_shelter
+annual_nonsalary_cost = 200000 * number_people_inside_shelter^(1/2)
+annual_cost_maintain_shelter = annual_salary_cost + annual_nonsalary_cost
+
+//(5) The annual probability that the scaled intervention persists.
+    ///Identical to benefit component 5 already defined as p_scaled_shelter
+
+
+///////////////////////////////////////////////////////////////////////
+//////////////////////////VALUE CALCULTAIONS///////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+// best-guess post-trial value, excluding cost of trial:
+
+// benefit = P(shelter exists, any event happens, and counterfactually avoided)
+
+// = [P(shelter exists)] * sum_events{P(any event happens) * [P(xrisk absent shelter) - P(xrisk with shelter)]}
+
+// for two events:
+// = P(shelter exists) *
+//      sum_years{
+//          P(shelter exists at year) *
+//          sum_events{
+//              cf_impact_event
+//          }
+//      }
+
+// where:
+// cf_impact_event =
+// P(event i j) * [P(xrisk absent shelter i j) - P(xrisk with shelter i j)]
+
+// and sum over years can be converted into sum of geometric series
+
+benefit_i0j0 = (
+    ((1 - bio_threat_1) * (1 - bio_threat_2)) *
+    (0)
+)
+
+benefit_i0j1 = (
+    ((1 - bio_threat_1) * bio_threat_2) *
+    (p_bio_2_xrisk_absent_shelter - p_bio_2_xrisk_with_shelter)
+)
+
+benefit_i1j0 = (
+    (bio_threat_1 * (1 - bio_threat_2)) *
+    (p_bio_1_xrisk_absent_shelter - p_bio_1_xrisk_with_shelter)
+)
+
+benefit_i1j1 = (
+    (bio_threat_1 * bio_threat_2) * 
+    (
+        (1 - (1 - p_bio_1_xrisk_absent_shelter) * (1 - p_bio_2_xrisk_absent_shelter)) -
+        (1 - (1 - p_bio_1_xrisk_with_shelter) * (1 - p_bio_2_xrisk_with_shelter))
+    )
+)
+
+benefit_shelter = benefit_i0j0 + benefit_i0j1 + benefit_i1j0 + benefit_i1j1
+
+benefit_post_trial_per_year = benefit_shelter * usd_per_basis_point_xrisk
+benefit_post_trial = expected_years_shelter * benefit_post_trial_per_year
+cost_post_trial = (
+        cost_build_shelter +
+        (expected_years_shelter * annual_cost_maintain_shelter)
+    )
+
+net_benefit_post_trial = benefit_post_trial - cost_post_trial
+
+p_post_trial_shelter_negative_gross_ev = cdf(benefit_post_trial, 0)
+p_post_trial_shelter_negative_net_ev = cdf(net_benefit_post_trial, 0)
+
+/////best-guess pre-trial value, excluding cost-benefit of trial://////
+p_scaled_given_successful = 1 - p_post_trial_shelter_negative_net_ev
+p_1_scaled = p_trial_successful * p_scaled_given_successful
+
+benefit_pre_trial_excltrial = p_1_scaled * benefit_post_trial
+cost_pre_trial_excltrial = p_1_scaled * cost_post_trial
+
+net_benefit_pre_trial_excltrial = benefit_pre_trial_excltrial - cost_pre_trial_excltrial
+
+p_pretrial_excltrial_shelter_negative_gross_ev = cdf(benefit_pre_trial_excltrial, 0)
+p_pretrial_excltrial_shelter_negative_net_ev = cdf(net_benefit_pre_trial_excltrial, 0)
+
+//////best-guess pre-trial value, including cost-benefit of trial://///
+benefit_pre_trial_incltrial = benefit_pre_trial_excltrial + (trial_other_benefits * usd_per_basis_point_xrisk)
+cost_pre_trial_incltrial = cost_trial_shelter + cost_pre_trial_excltrial
+
+net_benefit_pre_trial_incltrial = benefit_pre_trial_incltrial - cost_pre_trial_incltrial
+
+p_pretrial_incltrial_shelter_negative_gross_ev = cdf(benefit_pre_trial_incltrial, 0)
+p_pretrial_incltrial_shelter_negative_net_ev = cdf(net_benefit_pre_trial_incltrial, 0)
+
+/////////////////////////value of information://///////////////////////
+
+//// nice voi reference: https://valueofinfo.com/
+////
+//// voi = net_benefit_post_trial - net_benefit_before_trial
+//// net_benefit_post_trial = P(net_benefit_post_trial > 0) * [benefit_excluding_trial - cost_excluding_trial] + [0]
+//// net_benefit_before_trial = 0
+//// 
+//// voi = P(net_benefit_post_trial > 0) * [benefit_excluding_trial - cost_excluding_trial]
+////
+//// to be compared with cost of trial
+
+p_net_benefit_post_trial_positive = p_scaled_given_successful
+
+voi_gross = p_net_benefit_post_trial_positive * net_benefit_post_trial
+
+voi_net = voi_gross - cost_trial_shelter
+
+p_voi_net_positive = 1 - cdf(voi_net, 0)
