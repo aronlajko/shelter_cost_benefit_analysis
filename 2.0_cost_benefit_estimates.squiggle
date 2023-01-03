@@ -42,6 +42,8 @@
 // 
 // Additional notes:
 //
+// - Throughout, 'threat 1' is the threat for which shelters are _more_ helpful,
+//   'threat 2' the reverse.
 // - Benefits and costs will both be measured in 2022 USD.
 // - Numbers are very made up; this is probably most helpful as a framework to
 //   help structure thinking.
