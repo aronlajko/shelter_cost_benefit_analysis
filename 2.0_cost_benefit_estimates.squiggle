@@ -53,7 +53,8 @@ trial_learning_benefits = 0
 trial_direct_benefits = 0
 trial_other_benefits = trial_learning_benefits + trial_direct_benefits
 p_trial_successful = truncate(normal(0.6, 0.2), 0, 1)
-//// probability that intervention scaled given successful will be recalculated later 
+//// probability that intervention scaled given successful will be recalculated 
+//// later 
 
 // (2) Given (1), the annual probability that humanity will face a threat (that 
 //     may or may not cause extinction) where this intervention would plausibly 
@@ -68,18 +69,18 @@ bio_threat_2 = 1 - (1 - bio_threat_2_per_century)^(1/100)
 //     intervention.
 
 //// probability of extinction absent the intervention
-p_bio_1_xrisk_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
-p_bio_2_xrisk_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
+p_xrisk_1_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
+p_xrisk_2_absent_shelter = truncate(normal(0.1, 0.1), 0, 1)
     
 //// probability of extinction with the intervention
-p_bio_1_xrisk_with_shelter = truncate(normal(0.01, 0.1), 0, 1)
-p_bio_2_xrisk_with_shelter = truncate(normal(0.01, 0.1), 0, 1)
+p_xrisk_1_with_shelter = truncate(normal(0.01, 0.1), 0, 1)
+p_xrisk_2_with_shelter = truncate(normal(0.01, 0.1), 0, 1)
 
 // (4) The annual probability that the scaled intervention persists.
 
 p_shelter_exists_after_10_year = truncate(normal(0.6, 0.2), 0, 1)
-annual_p_scaled_shelter = (p_shelter_exists_after_10_year)^(1/10)
-expected_years = (1 / (1 - annual_p_scaled_shelter))
+p_shelter_exists_annual = (p_shelter_exists_after_10_year)^(1/10)
+expected_years = (1 / (1 - p_shelter_exists_annual))
 
 //// conversion to basis points of existential risk reduced
 ////// as discussed here, this especially SHOULD NOT be relied upon
@@ -100,7 +101,7 @@ usd_per_basis_point_xrisk = truncate(mx(normal(300M, 300M), 30M to 1B), 30M, 3B)
 
 // (2) The cost of trialling the intervention.
 
-cost_trial_shelter = truncate(300k  to 10M, 100k, 30M)
+cost_trial = truncate(300k  to 10M, 100k, 30M)
 
 // (3) The cost of initially building the scaled intervention.
 
@@ -112,14 +113,15 @@ cost_trial_shelter = truncate(300k  to 10M, 100k, 30M)
 //// solutions or cost over-runs
 cost_build_shelter = truncate(mx(30M to 1000M, normal(200M, 100M)), 10M, 1000M)
 
-// (4) The annual cost of maintaining the scaled intervention (costs that occur after year 0. staff, keepinng people inside)
+// (4) The annual cost of maintaining the scaled intervention (costs that occur 
+//     after year 0. staff, keepinng people inside)
     
-number_people_inside_shelter = truncate(30 to 1000, 10, 3000)
-number_people_outside_shelter = truncateLeft(log(number_people_inside_shelter, 2), 2)
-number_people_per_shelter = number_people_inside_shelter + number_people_outside_shelter
+n_people_inside_shelter = truncate(30 to 1000, 10, 3000)
+n_people_outside_shelter = truncateLeft(log(n_people_inside_shelter, 2), 2)
+n_people_per_shelter = n_people_inside_shelter + n_people_outside_shelter
 
-annual_salary_cost = 80000 * number_people_per_shelter
-annual_nonsalary_cost = 200000 * number_people_inside_shelter^(1/2)
+annual_salary_cost = 80000 * n_people_per_shelter
+annual_nonsalary_cost = 200000 * n_people_inside_shelter^(1/2)
 
 annual_cost_maintain_shelter = annual_salary_cost + annual_nonsalary_cost
 
@@ -134,8 +136,8 @@ annual_cost_maintain_shelter = annual_salary_cost + annual_nonsalary_cost
 
 // aggregate benefit components
 
-//// benefit = P(shelter exists, any event happens, and counterfactually avoided)
-//// = [P(shelter exists)] * sum_events{P(any event happens) * [P(xrisk absent shelter) - P(xrisk with shelter)]}
+//// benefit = P(shelter exists, event happens, x-risk counterfactually avoided)
+////
 //// for two events:
 //// = P(shelter exists) *
 ////      sum_years{
@@ -156,17 +158,17 @@ benefit_i0j0 = (
 )
 benefit_i0j1 = (
     ((1 - bio_threat_1) * bio_threat_2) *
-    (p_bio_2_xrisk_absent_shelter - p_bio_2_xrisk_with_shelter)
+    (p_xrisk_2_absent_shelter - p_xrisk_2_with_shelter)
 )
 benefit_i1j0 = (
     (bio_threat_1 * (1 - bio_threat_2)) *
-    (p_bio_1_xrisk_absent_shelter - p_bio_1_xrisk_with_shelter)
+    (p_xrisk_1_absent_shelter - p_xrisk_1_with_shelter)
 )
 benefit_i1j1 = (
     (bio_threat_1 * bio_threat_2) * 
     (
-        (1 - (1 - p_bio_1_xrisk_absent_shelter) * (1 - p_bio_2_xrisk_absent_shelter)) -
-        (1 - (1 - p_bio_1_xrisk_with_shelter) * (1 - p_bio_2_xrisk_with_shelter))
+        (1 - (1 - p_xrisk_1_absent_shelter) * (1 - p_xrisk_2_absent_shelter)) -
+        (1 - (1 - p_xrisk_1_with_shelter) * (1 - p_xrisk_2_with_shelter))
     )
 )
 
@@ -174,63 +176,69 @@ benefit_i1j1 = (
 benefit_shelter = benefit_i0j0 + benefit_i0j1 + benefit_i1j0 + benefit_i1j1
 benefit_shelter = benefit_shelter * 10^4
 
-benefit_post_trial_per_year = benefit_shelter * usd_per_basis_point_xrisk
+benefit_posttrial_per_year = benefit_shelter * usd_per_basis_point_xrisk
 
-benefit_post_trial = expected_years * benefit_post_trial_per_year
+benefit_posttrial = expected_years * benefit_posttrial_per_year
 
 // aggregate cost components
 
-cost_post_trial = (
+cost_posttrial = (
         cost_build_shelter +
         (expected_years * annual_cost_maintain_shelter)
     )
 
 // post-trial value, excluding cost of trial
 
-net_benefit_post_trial = benefit_post_trial - cost_post_trial
+netbenefit_posttrial = benefit_posttrial - cost_posttrial
 
-p_post_trial_shelter_negative_gross_ev = cdf(benefit_post_trial, 0)
-p_post_trial_shelter_negative_net_ev = cdf(net_benefit_post_trial, 0)
+p_posttrial_negative_gross_ev = cdf(benefit_posttrial, 0)
+p_posttrial_negative_net_ev = cdf(netbenefit_posttrial, 0)
 
 // pre-trial value, excluding cost-benefit of trial
 
 //// what is the probability that the intervention is scaled, before we observe
 //// trial results?
-p_scaled_given_successful = 1 - p_post_trial_shelter_negative_net_ev
+p_scaled_given_successful = 1 - p_posttrial_negative_net_ev
 p_1_scaled = p_trial_successful * p_scaled_given_successful
 
 //// from the pre-trial perspective, discount benefits and costs by p_1_scaled
-benefit_pre_trial_excltrial = p_1_scaled * benefit_post_trial
-cost_pre_trial_excltrial = p_1_scaled * cost_post_trial
-net_benefit_pre_trial_excltrial = benefit_pre_trial_excltrial - cost_pre_trial_excltrial
+benefit_pretrial_excltrial = p_1_scaled * benefit_posttrial
+cost_pretrial_excltrial = p_1_scaled * cost_posttrial
+netbenefit_pretrial_excltrial = benefit_pretrial_excltrial - cost_pretrial_excltrial
 
-p_pretrial_excltrial_shelter_negative_gross_ev = cdf(benefit_pre_trial_excltrial, 0)
-p_pretrial_excltrial_shelter_negative_net_ev = cdf(net_benefit_pre_trial_excltrial, 0)
+p_pretrial_excltrial_negative_gross_ev = cdf(benefit_pretrial_excltrial, 0)
+p_pretrial_excltrial_negative_net_ev = cdf(netbenefit_pretrial_excltrial, 0)
 
 // pre-trial value, including cost-benefit of trial
 
-benefit_pre_trial_incltrial = benefit_pre_trial_excltrial + (trial_other_benefits * usd_per_basis_point_xrisk)
-cost_pre_trial_incltrial = cost_trial_shelter + cost_pre_trial_excltrial
-net_benefit_pre_trial_incltrial = benefit_pre_trial_incltrial - cost_pre_trial_incltrial
+usd_trial_other_benefits = (trial_other_benefits * 10^4) * usd_per_basis_point_xrisk
 
-p_pretrial_incltrial_shelter_negative_gross_ev = cdf(benefit_pre_trial_incltrial, 0)
-p_pretrial_incltrial_shelter_negative_net_ev = cdf(net_benefit_pre_trial_incltrial, 0)
+benefit_pretrial_incltrial = benefit_pretrial_excltrial + usd_trial_other_benefits
+cost_pretrial_incltrial = cost_trial + cost_pretrial_excltrial
+netbenefit_pretrial_incltrial = benefit_pretrial_incltrial - cost_pretrial_incltrial
+
+p_pretrial_incltrial_negative_gross_ev = cdf(benefit_pretrial_incltrial, 0)
+p_pretrial_incltrial_negative_net_ev = cdf(netbenefit_pretrial_incltrial, 0)
 
 // value of information
 
 //// nice voi reference: https://valueofinfo.com/
 ////
-//// voi = net_benefit_post_trial - net_benefit_before_trial
-//// net_benefit_post_trial = P(net_benefit_post_trial > 0) * [benefit_excluding_trial - cost_excluding_trial] + [0]
-//// net_benefit_before_trial = 0
+//// voi = netbenefit_posttrial - netbenefit_before_trial
+//// netbenefit_posttrial = 
+////    P(netbenefit_posttrial > 0) * 
+////    [benefit_excluding_trial - cost_excluding_trial] + 
+////    [0]
+//// netbenefit_before_trial = 0
 //// 
-//// voi = P(net_benefit_post_trial > 0) * [benefit_excluding_trial - cost_excluding_trial]
+//// voi = P(netbenefit_posttrial > 0) * 
+////    [benefit_excluding_trial - cost_excluding_trial]
 ////
 //// to be compared with cost of trial
 
-p_net_benefit_post_trial_positive = p_scaled_given_successful
+p_netbenefit_posttrial_positive = p_scaled_given_successful
 
-voi_gross = p_net_benefit_post_trial_positive * net_benefit_post_trial
-voi_net = voi_gross - cost_trial_shelter
+voi_gross = p_netbenefit_posttrial_positive * netbenefit_posttrial
+voi_net = voi_gross - cost_trial
 
 p_voi_net_positive = 1 - cdf(voi_net, 0)
